@@ -2,7 +2,7 @@ use rand::{SeedableRng};
 use rand::seq::IndexedRandom; 
 use rand_chacha::ChaCha8Rng;
 use std::fs;
-use std::path::{Path, PathBuf};
+use std::path::Path;
 
 pub fn get_random_words(count: usize, seed: u64, list_name: &str) -> Vec<String> {
     let path = format!("assets/words_{}.txt", list_name);

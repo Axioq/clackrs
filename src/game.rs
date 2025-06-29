@@ -1,11 +1,10 @@
-use std::io::{self, Write};
+use std::io::Write;
 use std::time::{Duration, Instant};
 use crossterm::event::{self, Event, KeyCode};
 use crossterm::cursor;
 use crossterm::style::ResetColor;
 use crossterm::ExecutableCommand;
 
-use crate::words;
 use crate::ui;
 
 pub fn run_game() -> Result<(), Box<dyn std::error::Error>> {
