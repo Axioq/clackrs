@@ -9,7 +9,7 @@ use crate::words;
 use crate::ui;
 
 pub fn run_game() -> Result<(), Box<dyn std::error::Error>> {
-    let target_words = crate::words::get_random_words(10);
+    let target_words = crate::words::get_random_words(10, 12345, "basic");
     let target_text = target_words.join(" ");
 
     let mut stdout = std::io::stdout();
@@ -30,7 +30,7 @@ pub fn run_game() -> Result<(), Box<dyn std::error::Error>> {
                     _ => {}
                 }
 
-                ui::draw_colored_line(&target_text, &typed)?;
+                ui::draw_word_stream(&target_text, &typed)?;
             }
         }
 
@@ -45,12 +45,11 @@ pub fn run_game() -> Result<(), Box<dyn std::error::Error>> {
 
     stdout.execute(cursor::MoveTo(0, 5))?;
     stdout.execute(ResetColor)?;
+    ui::cleanup_terminal()?;
     println!("\n--- Results ---");
     println!("Time: {:.2?}", duration);
     println!("WPM: {:.2}", wpm);
     println!("Accuracy: {:.2}%", accuracy * 100.0);
-
-    ui::cleanup_terminal()?;
 
     Ok(())
 }
