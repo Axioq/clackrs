@@ -7,40 +7,61 @@ use crossterm::ExecutableCommand;
 
 use crate::ui;
 
-pub fn run_game() -> Result<(), Box<dyn std::error::Error>> {
-    let target_words = crate::words::get_random_words(10, 12345, "basic");
-    let target_text = target_words.join(" ");
-
+pub fn run_game(duration: Duration) -> Result<(), Box<dyn std::error::Error>> {
     let mut stdout = std::io::stdout();
     ui::init_terminal()?;
-    ui::draw_prompt(&target_text)?;
-    stdout.flush()?;
 
     let mut typed = String::new();
+    let mut all_words: Vec<String> = crate::words::get_random_words(100, rand::random(), "basic");
+    let mut word_window_start = 0;
+    let words_per_window = 15;
+
     let start = Instant::now();
+    let end_time = start + duration;
 
     loop {
-        if event::poll(std::time::Duration::from_millis(500))? {
+        if Instant::now() >= end_time {
+            break;
+        }
+
+        // Build the prompt line (current window of words)
+        let word_window_end = (word_window_start + words_per_window).min(all_words.len());
+        let visible_words = &all_words[word_window_start..word_window_end];
+        let prompt_text = visible_words.join(" ");
+
+        ui::draw_prompt(&prompt_text)?;
+        stdout.flush()?;
+
+        if event::poll(Duration::from_millis(50))? {
             if let Event::Key(key_event) = event::read()? {
                 match key_event.code {
                     KeyCode::Char(c) => typed.push(c),
-                    KeyCode::Backspace => { typed.pop(); }
-                    KeyCode::Esc | KeyCode::Enter => break,
+                    KeyCode::Backspace => {
+                        typed.pop();
+                    }
+                    KeyCode::Esc => return Ok(()),
                     _ => {}
                 }
 
-                ui::draw_word_stream(&target_text, &typed)?;
-            }
-        }
+                let time_left = end_time.saturating_duration_since(Instant::now()).as_secs();
+                ui::draw_word_stream(&prompt_text, &typed, time_left)?;
 
-        if typed.len() >= target_text.len() {
-            break;
+                // Check if user is near end of visible words
+                let typed_word_count = typed.split_whitespace().count();
+                if typed_word_count > word_window_start + (words_per_window as f64 * 0.75) as usize {
+                    word_window_start += 5;
+                    if word_window_end + 5 > all_words.len() {
+                        all_words.extend(crate::words::get_random_words(20, rand::random(), "basic"));
+                    }
+                }
+            }
         }
     }
 
     let duration = start.elapsed();
+    let full_prompt = all_words.join(" ");
+    let accuracy = calculate_accuracy(&full_prompt[..typed.len().min(full_prompt.len())], &typed);
     let wpm = calculate_wpm(&typed, duration);
-    let accuracy = calculate_accuracy(&target_text, &typed);
 
     stdout.execute(cursor::MoveTo(0, 5))?;
     stdout.execute(ResetColor)?;

@@ -10,10 +10,34 @@ fn main() {
         return;
     }
 
-    // Run the game loop
-    match game::run_game() {
-        Ok(_) => println!("Thanks for playing!"),
-        Err(e) => eprintln!("Game error: {}", e),
+    // Show main menu and handle selection
+    let mode = match ui::show_menu() {
+        Ok(m) => m,
+        Err(e) => {
+            eprintln!("Error displaying menu: {}", e);
+            let _ = ui::cleanup_terminal();
+            return;
+        }
+    };
+
+    match mode {
+        ui::GameMode::SinglePlayer => {
+            if let Err(e) = ui::wait_for_enter() {
+                eprintln!("Error: {}", e);
+                let _ = ui::cleanup_terminal();
+                return;
+            }
+            match game::run_game(std::time::Duration::from_secs(60)) {
+                Ok(_) => println!("Thanks for playing!"),
+                Err(e) => eprintln!("Game error: {}", e),
+            }
+        }
+        ui::GameMode::Multiplayer => {
+            println!("Multiplayer mode coming soon!");
+        }
+        ui::GameMode::Exit => {
+            // Just exit
+        }
     }
 
     // Clean up terminal
